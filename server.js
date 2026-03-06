@@ -4,6 +4,24 @@ const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
 
+const { MongoClient } = require("mongodb");
+
+const uri = process.env.DB_URL;
+
+const client = new MongoClient(uri);
+
+async function connectDB() {
+    try {
+        await client.connect();
+        console.log("MongoDB connected");
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+connectDB();
+
+
 const app = express();
 
 // Enable CORS for your frontend
@@ -68,4 +86,6 @@ app.get("/verify-donation/:reference", async (req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
+});
