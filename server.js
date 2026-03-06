@@ -1,17 +1,26 @@
+// server.js
 require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
 
 const app = express();
+
+// Enable CORS for your frontend
 app.use(cors({
-    origin: process.env.FRONTEND_URL
+    origin: process.env.FRONTEND_URL || "*" // Use "*" if you want open access
 }));
+
+// Parse JSON bodies
 app.use(express.json());
 
 // Initialize Donation
 app.post("/initialize-donation", async (req, res) => {
     const { email, amount } = req.body;
+
+    if (!email || !amount || isNaN(amount) || Number(amount) <= 0) {
+        return res.status(400).json({ error: "Invalid email or amount" });
+    }
 
     try {
         const response = await axios.post(
@@ -36,7 +45,7 @@ app.post("/initialize-donation", async (req, res) => {
     }
 });
 
-// Verify Donation (optional but recommended)
+// Verify Donation
 app.get("/verify-donation/:reference", async (req, res) => {
     const { reference } = req.params;
 
@@ -57,5 +66,6 @@ app.get("/verify-donation/:reference", async (req, res) => {
     }
 });
 
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
