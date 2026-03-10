@@ -1,7 +1,6 @@
 require("dotenv").config();
 
 const express = require("express");
-const axios = require("axios");
 const cors = require("cors");
 const { MongoClient } = require("mongodb");
 
@@ -17,92 +16,52 @@ app.use(express.json());
 
 const client = new MongoClient(process.env.MONGO_URL);
 
-let donationsCollection;
+let contactCollection;
 
 async function connectDB() {
     await client.connect();
+
     const db = client.db("rcmi");
-    donationsCollection = db.collection("donations");
+
+    contactCollection = db.collection("contacts");
+
     console.log("MongoDB connected");
 }
 
 connectDB();
 
-/* ---------------- INITIALIZE DONATION ---------------- */
+/* ---------------- CONTACT FORM ---------------- */
 
-app.post("/initialize-donation", async (req, res) => {
+app.post("/contact", async (req, res) => {
 
-    const { email, amount } = req.body;
-
-    try {
-
-        const response = await axios.post(
-            "https://api.paystack.co/transaction/initialize",
-            {
-                email,
-                amount: amount * 100,
-                callback_url: `${process.env.FRONTEND_URL}/donation-success`
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-                    "Content-Type": "application/json"
-                }
-            }
-        );
-
-        res.json(response.data);
-
-    } catch (error) {
-
-        console.error(error.response?.data || error.message);
-
-        res.status(500).json({
-            error: "Donation initialization failed"
-        });
-
-    }
-
-});
-
-/* ---------------- VERIFY PAYMENT ---------------- */
-
-app.get("/verify-donation/:reference", async (req, res) => {
-
-    const reference = req.params.reference;
+    const { name, email, message } = req.body;
 
     try {
 
-        const response = await axios.get(
-            `https://api.paystack.co/transaction/verify/${reference}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
-                }
-            }
-        );
-
-        const data = response.data.data;
-
-        if (data.status === "success") {
-
-            await donationsCollection.insertOne({
-                email: data.customer.email,
-                amount: data.amount / 100,
-                reference: data.reference,
-                date: new Date()
+        if (!name || !email || !message) {
+            return res.status(400).json({
+                error: "All fields are required"
             });
-
         }
 
-        res.json(response.data);
+        await contactCollection.insertOne({
+            name,
+            email,
+            message,
+            date: new Date()
+        });
+
+        res.json({
+            success: true,
+            message: "Message received"
+        });
 
     } catch (error) {
 
-        console.error(error.response?.data || error.message);
+        console.error(error);
 
         res.status(500).json({
-            error: "Verification failed"
+            error: "Failed to send message"
         });
 
     }
