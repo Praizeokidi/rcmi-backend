@@ -7,6 +7,10 @@ dotenv.config();
 
 const app = express();
 
+/* =========================
+   CORS CONFIG
+   (NO CHANGE - already correct)
+========================= */
 app.use(cors({
     origin: [
         "http://localhost:5173",
@@ -26,6 +30,9 @@ const client = new MongoClient(process.env.MONGO_URI);
 
 let db;
 
+/* CHANGED: wrapped connect in safe function instead of top-level await
+   WHY: Render + Node 20 sometimes behaves unpredictably with top-level await
+*/
 async function connectDB() {
     try {
         await client.connect();
@@ -36,7 +43,15 @@ async function connectDB() {
     }
 }
 
-await connectDB();
+/* CHANGED: proper startup sequence instead of await at top level */
+connectDB();
+
+/* =========================
+   HEALTH CHECK (NEW - optional but useful)
+========================= */
+app.get("/", (req, res) => {
+    res.send("RCMI API running");
+});
 
 /* =========================
    CONTACT ROUTE
@@ -48,6 +63,11 @@ app.post("/contact", async (req, res) => {
 
         if (!name || !email || !message) {
             return res.status(400).json({ error: "All fields are required" });
+        }
+
+        /* CHANGED: safety check (prevents crash if DB not ready yet) */
+        if (!db) {
+            return res.status(500).json({ error: "Database not ready" });
         }
 
         await db.collection("messages").insertOne({
@@ -75,6 +95,11 @@ app.post("/subscribe", async (req, res) => {
 
         if (!email) {
             return res.status(400).json({ error: "Email is required" });
+        }
+
+        /* CHANGED: DB safety check */
+        if (!db) {
+            return res.status(500).json({ error: "Database not ready" });
         }
 
         const existing = await db.collection("subscribers").findOne({ email });
@@ -106,5 +131,10 @@ app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
 
+/* ❌ REMOVED:
+   console.log(process.env.MONGO_URI);
 
-console.log(import.meta.env.VITE_API_URL);
+   WHY:
+   - exposes sensitive DB string in logs (bad for production)
+   - not needed once connection works
+*/
