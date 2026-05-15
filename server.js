@@ -13,8 +13,8 @@ const app = express();
 ========================= */
 app.use(cors({
     origin: [
-        "http://localhost:5173",
-        "https://rcmi.vercel.app"
+
+        "https://rcmi.org.ng"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true
