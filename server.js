@@ -13,7 +13,6 @@ const app = express();
 ========================= */
 app.use(cors({
     origin: [
-
         "https://rcmi.org.ng"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
