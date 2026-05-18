@@ -11,13 +11,24 @@ const app = express();
    CORS CONFIG
    (NO CHANGE - already correct)
 ========================= */
+const allowedOrigins = [
+    "https://www.rcmi.org.ng",
+    "https://rcmi.org.ng"
+];
+
 app.use(cors({
-    origin: [
-        "https://rcmi.org.ng"
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true
 }));
+
+// IMPORTANT: handle preflight requests
+app.options("*", cors());
 
 app.use(express.json());
 
