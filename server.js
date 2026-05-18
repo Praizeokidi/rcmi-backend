@@ -11,19 +11,9 @@ const app = express();
    CORS CONFIG
    (NO CHANGE - already correct)
 ========================= */
-const allowedOrigins = [
-    "https://www.rcmi.org.ng",
-    "https://rcmi.org.ng"
-];
-
 app.use(cors({
-    origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            callback(new Error("Not allowed by CORS"));
-        }
-    },
+    origin: ["http://localhost:5173", "https://www.rcmi.org.ng", "https://rcmi.org.ng"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true
 }));
 
