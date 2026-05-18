@@ -9,7 +9,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export const sendContactEmail = async ({ name, email, message }) => {
     return await resend.emails.send({
         from: "RCMI Contact <onboarding@resend.dev>",
-        to: "praize.okidi@cpl.com.ng",
+        to: "praizeokidi@gmail.com",
         subject: "New Contact Message",
         html: `
       <h2>New Contact Form Submission</h2>

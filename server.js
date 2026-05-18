@@ -1,10 +1,14 @@
 import dotenv from "dotenv";
 dotenv.config();
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 import express from "express";
 import cors from "cors";
 
 import { MongoClient } from "mongodb";
 import { sendContactEmail } from "./utils/sendEmail.js";
+
 
 
 
@@ -140,6 +144,18 @@ app.post("/subscribe", async (req, res) => {
         await db.collection("subscribers").insertOne({
             email,
             createdAt: new Date()
+        });
+
+        // ✅ SEND NOTIFICATION EMAIL TO YOU
+        await resend.emails.send({
+            from: "RCMI Newsletter <onboarding@resend.dev>",
+            to: "praizeokidi@gmail.com", // 👈 YOU get notified here
+            subject: "New Newsletter Subscriber",
+            html: `
+        <h2>New Subscriber</h2>
+        <p><b>Email:</b> ${email}</p>
+        <p>Time: ${new Date().toLocaleString()}</p>
+      `
         });
 
         return res.status(200).json({ message: "Subscribed successfully" });
