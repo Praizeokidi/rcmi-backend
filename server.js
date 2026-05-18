@@ -1,9 +1,14 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import { MongoClient } from "mongodb";
 
-dotenv.config();
+import { MongoClient } from "mongodb";
+import { sendContactEmail } from "./utils/sendEmail.js";
+
+
+
+
 
 const app = express();
 
@@ -98,11 +103,15 @@ app.post("/contact", async (req, res) => {
             createdAt: new Date()
         });
 
-        return res.status(200).json({ message: "Message saved successfully" });
+
+        // SEND EMAIL 🚀
+        await sendContactEmail({ name, email, message });
+
+        res.status(200).json({ message: "Message saved and email sent successfully" });
 
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ error: "Failed to save message" });
+        return res.status(500).json({ error: "Failed to process request" });
     }
 });
 
@@ -155,3 +164,4 @@ app.listen(PORT, () => {
    - wildcard app.options("*") that crashed Render
    - unnecessary debug logs exposing env values
 */
+
