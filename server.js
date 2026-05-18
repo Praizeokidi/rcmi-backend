@@ -8,17 +8,39 @@ dotenv.config();
 const app = express();
 
 /* =========================
-   CORS CONFIG
-   (NO CHANGE - already correct)
+   CORS (PRODUCTION SAFE FIX)
 ========================= */
-app.use(cors({
-    origin: ["http://localhost:5173", "https://www.rcmi.org.ng", "https://rcmi.org.ng"],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true
-}));
 
-// IMPORTANT: handle preflight requests
-app.options("*", cors());
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://www.rcmi.org.ng",
+    "https://rcmi.org.ng"
+];
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        // allow mobile apps, curl, postman (no origin)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"]
+};
+
+app.use(cors(corsOptions));
+
+/* ❌ REMOVED: app.options("*", cors())
+   WHY: crashes Express 5 / path-to-regexp in production (Render) */
+
+/* =========================
+   MIDDLEWARE
+========================= */
 
 app.use(express.json());
 
@@ -30,9 +52,6 @@ const client = new MongoClient(process.env.MONGO_URI);
 
 let db;
 
-/* CHANGED: wrapped connect in safe function instead of top-level await
-   WHY: Render + Node 20 sometimes behaves unpredictably with top-level await
-*/
 async function connectDB() {
     try {
         await client.connect();
@@ -43,12 +62,12 @@ async function connectDB() {
     }
 }
 
-/* CHANGED: proper startup sequence instead of await at top level */
 connectDB();
 
 /* =========================
-   HEALTH CHECK (NEW - optional but useful)
+   HEALTH CHECK
 ========================= */
+
 app.get("/", (req, res) => {
     res.send("RCMI API running");
 });
@@ -56,6 +75,9 @@ app.get("/", (req, res) => {
 /* =========================
    CONTACT ROUTE
 ========================= */
+
+/* ❌ REMOVED: app.options("/contact", cors());
+   WHY: unnecessary — handled globally by app.use(cors()) */
 
 app.post("/contact", async (req, res) => {
     try {
@@ -65,7 +87,6 @@ app.post("/contact", async (req, res) => {
             return res.status(400).json({ error: "All fields are required" });
         }
 
-        /* CHANGED: safety check (prevents crash if DB not ready yet) */
         if (!db) {
             return res.status(500).json({ error: "Database not ready" });
         }
@@ -77,11 +98,11 @@ app.post("/contact", async (req, res) => {
             createdAt: new Date()
         });
 
-        res.status(200).json({ message: "Message saved successfully" });
+        return res.status(200).json({ message: "Message saved successfully" });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Failed to save message" });
+        return res.status(500).json({ error: "Failed to save message" });
     }
 });
 
@@ -97,7 +118,6 @@ app.post("/subscribe", async (req, res) => {
             return res.status(400).json({ error: "Email is required" });
         }
 
-        /* CHANGED: DB safety check */
         if (!db) {
             return res.status(500).json({ error: "Database not ready" });
         }
@@ -113,11 +133,11 @@ app.post("/subscribe", async (req, res) => {
             createdAt: new Date()
         });
 
-        res.status(200).json({ message: "Subscribed successfully" });
+        return res.status(200).json({ message: "Subscribed successfully" });
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Subscription failed" });
+        return res.status(500).json({ error: "Subscription failed" });
     }
 });
 
@@ -132,9 +152,6 @@ app.listen(PORT, () => {
 });
 
 /* ❌ REMOVED:
-   console.log(process.env.MONGO_URI);
-
-   WHY:
-   - exposes sensitive DB string in logs (bad for production)
-   - not needed once connection works
+   - wildcard app.options("*") that crashed Render
+   - unnecessary debug logs exposing env values
 */
